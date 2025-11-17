@@ -7,10 +7,10 @@ plugins {
 }
 
 ext {
-	telegrambotsVersion = '6.8.0'
-	logbackVersion = '1.4.8'
+	telegrambotsVersion = '6.9.7.1'
+	logbackVersion = '1.5.19'
 	jaxbApiVersion = '2.3.1'
-	postgresqlDriverVersion = '42.6.0'
+	postgresqlDriverVersion = '42.7.7'
 	springOrmVersion = '6.0.13'
 }
 
@@ -29,6 +29,7 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
 	implementation "org.telegram:telegrambots:$telegrambotsVersion"
 	implementation "org.telegram:telegrambotsextensions:$telegrambotsVersion"
