@@ -18,56 +18,77 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public boolean existsById(Message message) {
-        if (subscribersRepository.existsById(getUserName(message))) {
-            log.info("User {} already exist in DB", getUserName(message));
-            return true;
+        String userId = getUserId(message);
+
+        boolean exists = subscribersRepository.existsByTelegramUserId(userId);
+
+        if (exists) {
+            log.info("User {} already exists in DB", userId);
         }
-        return false;
+
+        return exists;
     }
 
     @Override
     @Transactional
     public void save(Message message) {
+        String userId = getUserId(message);
+
         SubscribersEntity subscribersEntity = new SubscribersEntity();
-        subscribersEntity.setId(getUserName(message));
+        subscribersEntity.setTelegramUserId(userId);
+        subscribersEntity.setChatId(message.getChatId());
 
         subscribersRepository.save(subscribersEntity);
-        log.info("User {} save in DB", subscribersEntity.getId());
+        log.info("User {} save in DB with chatID: {}", subscribersEntity.getTelegramUserId(), subscribersEntity.getChatId());
     }
 
     @Override
     @Transactional
     public void subscribe(Message message, String price) {
-        SubscribersEntity subscribersEntity = subscribersRepository.findById(getUserName(message));
+        String userId = getUserId(message);
+
+        SubscribersEntity subscribersEntity = subscribersRepository.findByTelegramUserId(userId).orElseThrow(
+                () -> new RuntimeException("User " + userId + " does not exist")
+        );
+
         subscribersEntity.setPrice(Integer.parseInt(price));
+        subscribersEntity.setLastNotificationTime(null);
 
         subscribersRepository.save(subscribersEntity);
-        log.info("Update price {} from user {}", price, getUserName(message));
+        log.info("Update price {} from user {}", price, userId);
     }
 
     @Override
     public Integer getSubscribe(Message message) {
-        Integer price = subscribersRepository.findPriceById(getUserName(message));
-        log.info("Get price {} from user {}", price, getUserName(message));
+        String userId = getUserId(message);
+
+        Integer price = subscribersRepository.findPriceByTelegramUserId(userId);
+        log.info("Get price {} from user {}", price, userId);
+
         return price;
     }
 
     @Override
     @Transactional
     public boolean unsubscribe(Message message) {
-        SubscribersEntity subscribersEntity = subscribersRepository.findById(getUserName(message));
+        String userId = getUserId(message);
+
+        SubscribersEntity subscribersEntity = subscribersRepository.findByTelegramUserId(userId).orElseThrow(
+                () -> new RuntimeException("User " + userId + " does not exist")
+        );
+
         if (subscribersEntity.getPrice() != null) {
             subscribersEntity.setPrice(null);
-            log.info("User {} unsubscribe. Price equals {}", getUserName(message), subscribersEntity.getPrice());
+            log.info("User {} unsubscribe. Price equals {}", userId, subscribersEntity.getPrice());
+            subscribersRepository.save(subscribersEntity);
             return true;
         } else {
-            log.info("User {} price is null", getUserName(message));
+            log.info("User {} price is null", userId);
             return false;
         }
     }
 
-    private String getUserName(Message message) {
-        return message.getFrom().getUserName() == null ?
-                String.valueOf(message.getFrom().getId()) : message.getFrom().getUserName();
+    private String getUserId(Message message) {
+        return message.getFrom().getId().toString();
     }
 }
